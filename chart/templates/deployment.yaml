@@ -37,29 +37,12 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-#          command: [ "/bin/sh", "-c", "--" ]
-#          args: [ "while true; do sleep 30; done;" ]
-          command: [ "/bin/sh", "-c", "--" ]
-          args: [ "apk --no-cache add dnsmasq=2.89-r5; dnsmasq -k;" ]
-
 
           volumeMounts:
               - name: config-volume
                 mountPath: /etc/dnsmasq.conf
                 subPath: config
 
-#          ports:
-#            - name: http
-#              containerPort: 80
-#              protocol: TCP
-#          livenessProbe:
-#            httpGet:
-#              path: /
-#              port: http
-#          readinessProbe:
-#            httpGet:
-#              path: /
-#              port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
