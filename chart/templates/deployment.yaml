@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dnsmasq.fullname" . }}
+  labels:
+    {{- include "dnsmasq.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "dnsmasq.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+         reloader.stakater.com/auto: "true"
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "dnsmasq.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dnsmasq.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      hostNetwork: true
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+#          command: [ "/bin/sh", "-c", "--" ]
+#          args: [ "while true; do sleep 30; done;" ]
+          command: [ "/bin/sh", "-c", "--" ]
+          args: [ "apk --no-cache add dnsmasq=2.89-r5; dnsmasq -k;" ]
+
+
+          volumeMounts:
+              - name: config-volume
+                mountPath: /etc/dnsmasq.conf
+                subPath: config
+
+#          ports:
+#            - name: http
+#              containerPort: 80
+#              protocol: TCP
+#          livenessProbe:
+#            httpGet:
+#              path: /
+#              port: http
+#          readinessProbe:
+#            httpGet:
+#              path: /
+#              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+          - name: config-volume
+            configMap:
+                # Provide the name of the ConfigMap containing the files you want
+                # to add to the container
+                name: {{ include "dnsmasq.fullname" . }}-config
+                items:
+                  - key: dnsmasq.conf
+                    path: config
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
